@@ -1,26 +1,51 @@
 import User from '../models/User.js';
 import { generateTokens, verifyRefreshToken } from '../utils/jwt.js';
 
-export const createUser = async (req, res, next) => {
+export const signup = async (req, res, next) => {
     try {
-        const { name, email } = req.body;
+        const { name, username, email, password, confirmPassword } = req.body;
 
-        if (!name || !email) {
+        // Validation
+        if (!name || !username || !email || !password || !confirmPassword) {
             return res.status(400).json({
                 success: false,
-                message: "Name and email required"
+                message: "All fields are required"
             });
         }
 
-        const userExists = await User.findOne({ email });
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Passwords do not match"
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 6 characters"
+            });
+        }
+
+        // Check if user exists
+        const userExists = await User.findOne({
+            $or: [{ email }, { username }]
+        });
+
         if (userExists) {
             return res.status(409).json({
                 success: false,
-                message: "User already exists"
+                message: "Email or username already exists"
             });
         }
 
-        const user = await User.create({ name, email });
+        // Create user (password will be hashed by pre-save hook)
+        const user = await User.create({
+            name,
+            username,
+            email,
+            password
+        });
 
         // Generate tokens
         const { accessToken, refreshToken } = generateTokens(user._id.toString());
@@ -36,6 +61,7 @@ export const createUser = async (req, res, next) => {
             user: {
                 id: user._id,
                 name: user.name,
+                username: user.username,
                 email: user.email,
                 bio: user.bio,
                 isAnonymous: user.isAnonymous
@@ -46,22 +72,33 @@ export const createUser = async (req, res, next) => {
     }
 };
 
-export const loginUser = async (req, res, next) => {
+export const login = async (req, res, next) => {
     try {
-        const { email } = req.body;
+        const { username, password } = req.body;
 
-        if (!email) {
+        if (!username || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Email required"
+                message: "Username and password required"
             });
         }
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ username });
+
         if (!user) {
-            return res.status(404).json({
+            return res.status(401).json({
                 success: false,
-                message: "User not found"
+                message: "Invalid credentials"
+            });
+        }
+
+        // Validate password
+        const isPasswordValid = await user.comparePassword(password);
+
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid credentials"
             });
         }
 
@@ -79,6 +116,7 @@ export const loginUser = async (req, res, next) => {
             user: {
                 id: user._id,
                 name: user.name,
+                username: user.username,
                 email: user.email,
                 bio: user.bio,
                 isAnonymous: user.isAnonymous
@@ -199,6 +237,7 @@ export const getUser = async (req, res, next) => {
             user: {
                 id: user._id,
                 name: user.name,
+                username: user.username,
                 email: user.email,
                 bio: user.bio,
                 isAnonymous: user.isAnonymous
@@ -207,4 +246,38 @@ export const getUser = async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+};
+
+// Google OAuth callback - called by Passport
+export const googleCallback = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication failed"
+            });
+        }
+
+        // Generate tokens
+        const { accessToken, refreshToken } = generateTokens(req.user._id.toString());
+
+        // Store refresh token
+        req.user.refreshTokens.push(refreshToken);
+        await req.user.save();
+
+        // Redirect to frontend with tokens
+        const frontendURL = process.env.FRONTEND_URL || 'http://localhost:3000';
+        res.redirect(
+            `${frontendURL}/auth/success?accessToken=${accessToken}&refreshToken=${refreshToken}&id=${req.user._id}`
+        );
+    } catch (error) {
+        const frontendURL = process.env.FRONTEND_URL || 'http://localhost:3000';
+        res.redirect(`${frontendURL}/auth/failed?error=${error.message}`);
+    }
+};
+
+// OAuth failure handler
+export const googleAuthFailure = (req, res) => {
+    const frontendURL = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendURL}/auth/failed?error=Authentication failed`);
 };
