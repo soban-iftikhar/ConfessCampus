@@ -10,7 +10,8 @@ const userSchema = new mongoose.Schema({
         type: String,
         unique: true,
         lowercase: true,
-        trim: true
+        trim: true,
+        required: true
     },
     bio: {
         type: String,
@@ -20,7 +21,11 @@ const userSchema = new mongoose.Schema({
     isAnonymous: {
         type: Boolean,
         default: false
-    }
+    },
+    refreshTokens: [{
+        type: String,
+        default: null
+    }]
 }, { timestamps: true });
 
 export default mongoose.model('User', userSchema);
