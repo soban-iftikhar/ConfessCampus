@@ -4,7 +4,7 @@ const postSchema = new mongoose.Schema({
     content: {
         type: String,
         required: true,
-        maxlength: [500, 'Content cannot exceed 500 characters']
+        maxlength: [1000, 'Content cannot exceed 1000 characters']
     },
     isAnonymous: {
         type: Boolean,

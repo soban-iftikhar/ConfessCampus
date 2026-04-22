@@ -1,87 +1,180 @@
 import Post from '../models/Post.js';
 import User from '../models/User.js';
 
-export const createPost = async (req, res, next) => {
+// Create a new post
+const createPost = async (req, res) => {
     try {
-        const { content, userId } = req.body;
+        const { content } = req.body;
+        const userId = req.user?.id; // From auth middleware
 
-        if (!content) {
-            return res.status(400).json({
-                success: false,
-                message: "Content required"
-            });
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized - User not found' });
         }
 
-        let user = null;
-        let isAnonymous = true;
-
-        if (userId) {
-            user = await User.findById(userId);
-            if (user) {
-                isAnonymous = user.isAnonymous;
-            }
+        if (!content || content.length > 1000) {
+            return res.status(400).json({ message: 'Post cannot be empty and cannot exceed 1000 characters' });
         }
 
-        const post = await Post.create({
+        // Get user's anonymity preference from profile
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const newPost = new Post({
             content,
-            isAnonymous,
-            user: userId || null
+            isAnonymous: user.isAnonymous, // Use user's profile setting
+            user: userId
         });
 
-        res.status(201).json({
-            success: true,
-            post: {
-                id: post._id,
-                content: post.content,
-                isAnonymous: post.isAnonymous,
-                createdAt: post.createdAt
-            }
-        });
+        const savedPost = await newPost.save();
+        res.status(201).json(savedPost);
     } catch (error) {
-        next(error);
+        res.status(500).json({ message: 'Server error', details: error.message });
     }
 };
 
-export const getPosts = async (req, res, next) => {
+// Get all posts
+const getPosts = async (req, res) => {
     try {
         const posts = await Post.find()
-            .sort({ createdAt: -1 })
-            .populate('user', 'name email bio');
-
-        const formattedPosts = posts.map(post => ({
-            id: post._id,
-            content: post.content,
-            isAnonymous: post.isAnonymous,
-            user: post.isAnonymous ? null : post.user,
-            likesCount: post.likesCount,
-            commentsCount: post.commentsCount,
-            createdAt: post.createdAt
-        }));
-
-        res.status(200).json(formattedPosts);
+            .populate('user', 'name')
+            .populate('comments')
+            .sort({ createdAt: -1 });
+        res.status(200).json(posts);
     } catch (error) {
-        next(error);
+        res.status(500).json({ message: 'Server error', details: error.message });
     }
 };
 
-export const deletePost = async (req, res, next) => {
+// Get a single post by ID
+const getPostById = async (req, res) => {
     try {
-        const post = await Post.findById(req.params.id);
+        const postId = req.params.id;
+        const postData = await Post.findById(postId)
+            .populate('user', 'name')
+            .populate('comments');
+        if (!postData) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+        res.status(200).json(postData);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', details: error.message });
+    }
+};
 
-        if (!post) {
-            return res.status(404).json({
-                success: false,
-                message: "Post not found"
-            });
+
+const updatePost = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const { content } = req.body; // Don't accept isAnonymous from request
+        const userId = req.user?.id; // From auth middleware
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized - User not found' });
         }
 
-        await post.deleteOne();
+        if (!content || content.length > 1000) {
+            return res.status(400).json({ message: 'Content is required and must not exceed 1000 characters' });
+        }
 
-        res.status(200).json({
-            success: true,
-            message: "Post deleted"
-        });
+        const postData = await Post.findById(postId);
+        if (!postData) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        if (postData.user.toString() !== userId) {
+            return res.status(403).json({ message: 'Unauthorized - Can only edit your own posts' });
+        }
+
+        postData.content = content;
+        const updatedPost = await postData.save();
+        res.status(200).json(updatedPost);
     } catch (error) {
-        next(error);
+        res.status(500).json({ message: 'Server error', details: error.message });
     }
 };
+
+// Delete a post
+const deletePost = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const userId = req.user?.id; // From auth middleware
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized - User not found' });
+        }
+
+        const postData = await Post.findById(postId);
+        if (!postData) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        if (postData.user.toString() !== userId) {
+            return res.status(403).json({ message: 'Unauthorized - Can only delete your own posts' });
+        }
+
+        await Post.findByIdAndDelete(postId);
+        res.status(200).json({ message: 'Post deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', details: error.message });
+    }
+};
+
+
+// Like a post
+const likePost = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const userId = req.user?.id; // From auth middleware
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized - User not found' });
+        }
+
+        const postData = await Post.findById(postId);
+        if (!postData) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        if (postData.likes.includes(userId)) {
+            return res.status(400).json({ message: 'You have already liked this post' });
+        }
+
+        postData.likes.push(userId);
+        await postData.save();
+        res.status(200).json({ message: 'Post liked successfully', likesCount: postData.likes.length });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', details: error.message });
+    }
+};
+
+
+//  Unlike a post
+const unlikePost = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const userId = req.user?.id; // From auth middleware
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized - User not found' });
+        }
+
+        const postData = await Post.findById(postId);
+        if (!postData) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        if (!postData.likes.includes(userId)) {
+            return res.status(400).json({ message: 'You have not liked this post' });
+        }
+
+        postData.likes = postData.likes.filter(id => id.toString() !== userId);
+        await postData.save();
+        res.status(200).json({ message: 'Post unliked successfully', likesCount: postData.likes.length });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', details: error.message });
+    }
+};
+
+export { createPost, getPosts, getPostById, updatePost, deletePost, likePost, unlikePost };

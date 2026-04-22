@@ -1,6 +1,5 @@
 import express from 'express';
-import { createPost, getPosts, deletePost } from '../controllers/postController.js';
-import { toggleLike, addComment, getComments } from '../controllers/interactionController.js';
+import { createPost, getPosts, getPostById, updatePost, deletePost, likePost, unlikePost } from '../controllers/postController.js';
 
 const router = express.Router();
 
@@ -9,13 +8,15 @@ router.route('/')
     .post(createPost);
 
 router.route('/:id')
+    .get(getPostById)
+    .put(updatePost)
     .delete(deletePost);
 
 router.route('/:id/like')
-    .post(toggleLike);
+    .post(likePost);
 
-router.route('/:id/comments')
-    .get(getComments)
-    .post(addComment);
+router.route('/:id/unlike')
+    .post(unlikePost);
+
 
 export default router;
