@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
 // ─── Input ──────────────────────────────────────────────────────────
 export const Input = ({
@@ -28,6 +29,7 @@ export const Input = ({
           <span style={{
             position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)',
             fontSize: '16px', pointerEvents: 'none', zIndex: 1,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>{icon}</span>
         )}
         <input
@@ -268,12 +270,8 @@ export const Button = ({
       }}
     >
       {loading ? (
-        <span style={{
-          width: '16px', height: '16px', border: '2px solid currentColor',
-          borderTopColor: 'transparent', borderRadius: '50%',
-          animation: 'spin 0.7s linear infinite', display: 'inline-block',
-        }} />
-      ) : icon && <span>{icon}</span>}
+        <Loader2 size={16} style={{ animation: 'spin 0.7s linear infinite' }} />
+      ) : icon && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>}
       {!loading && children}
     </button>
   );

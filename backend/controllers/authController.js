@@ -288,12 +288,13 @@ export const getUser = async (req, res, next) => {
 // Update user profile
 export const updateProfile = async (req, res, next) => {
     try {
-        const { userId, name, bio, isAnonymous } = req.body;
+        const userId = req.user?.id; // Get from authenticated user
+        const { name, bio, isAnonymous } = req.body;
 
         if (!userId) {
-            return res.status(400).json({
+            return res.status(401).json({
                 success: false,
-                message: "User ID required"
+                message: "Unauthorized - User not found"
             });
         }
 
@@ -314,6 +315,7 @@ export const updateProfile = async (req, res, next) => {
 
         res.status(200).json({
             success: true,
+            message: 'Profile updated successfully',
             user: {
                 id: user._id,
                 name: user.name,
@@ -321,6 +323,101 @@ export const updateProfile = async (req, res, next) => {
                 bio: user.bio,
                 isAnonymous: user.isAnonymous
             }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Change password
+export const changePassword = async (req, res, next) => {
+    try {
+        const userId = req.user?.id; // Get from authenticated user
+        const { currentPassword, newPassword } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized - User not found"
+            });
+        }
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Current and new password are required"
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "New password must be at least 6 characters"
+            });
+        }
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        // Verify current password
+        const isPasswordValid = await user.comparePassword(currentPassword);
+
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                message: "Current password is incorrect"
+            });
+        }
+
+        // Update password (will be hashed by pre-save hook)
+        user.password = newPassword;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Password changed successfully'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Delete user account
+export const deleteUser = async (req, res, next) => {
+    try {
+        const userId = req.user?.id; // Get from authenticated user
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized - User not found"
+            });
+        }
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        // Delete all user's posts, comments, messages, chats
+        // (These deletions should be implemented based on your data model relationships)
+
+        // Delete the user
+        await User.findByIdAndDelete(userId);
+
+        res.status(200).json({
+            success: true,
+            message: 'Account deleted successfully'
         });
     } catch (error) {
         next(error);

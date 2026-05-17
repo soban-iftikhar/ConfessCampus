@@ -28,10 +28,6 @@ const SearchBar = ({ onSearch }) => {
   return (
     <form onSubmit={handleSearch} style={{ flex: 1, maxWidth: '420px' }}>
       <div style={{ position: 'relative' }}>
-        <span style={{
-          position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
-          color: 'var(--text-muted)', fontSize: '14px', pointerEvents: 'none', fontWeight: 600,
-        }}>SEARCH</span>
         <input
           value={q}
           onChange={e => setQ(e.target.value)}

@@ -10,7 +10,11 @@ import { formatTimeAgo } from '../utils/helpers';
 const CommentItem = ({ comment, postOwnerId, onDelete }) => {
   const { user } = useAuth();
   const [deleting, setDeleting] = useState(false);
-  const isOwner = user?._id === comment.user?._id;
+  const commentAuthorId = comment.user?._id || comment.user;
+  const isOwner = !!user?._id && !!commentAuthorId && String(user._id) === String(commentAuthorId);
+  const authorLabel = comment.isAnonymous
+    ? (isOwner ? 'Anonymous · You' : 'Anonymous')
+    : (isOwner ? 'You' : (comment.user?.name || 'User'));
 
   const handleDelete = async () => {
     if (!window.confirm('Delete this comment?')) return;
@@ -31,9 +35,9 @@ const CommentItem = ({ comment, postOwnerId, onDelete }) => {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
           <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--text)', fontFamily: 'var(--font-body)' }}>
-            {comment.isAnonymous ? 'Anonymous' : (comment.user?.name || 'User')}
+            {authorLabel}
           </span>
-          {!comment.isAnonymous && comment.user?.username && (
+          {!comment.isAnonymous && !isOwner && comment.user?.username && (
             <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
               @{comment.user.username}
             </span>
@@ -99,7 +103,7 @@ const CommentSection = ({ postId, commentsCount }) => {
     try {
       const data = await apiRequest('/comments', {
         method: 'POST',
-        body: JSON.stringify({ post: postId, content: content.trim(), isAnonymous }),
+        body: JSON.stringify({ postId: postId, content: content.trim(), isAnonymous }),
       });
       setComments(prev => [data.comment, ...prev]);
       setContent('');

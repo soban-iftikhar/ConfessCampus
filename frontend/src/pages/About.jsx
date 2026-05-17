@@ -154,7 +154,13 @@ const About = () => {
           <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', marginBottom: '28px' }}>
             Everything your campus needs, in one place
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: '18px 20px',
+            maxWidth: '760px',
+            margin: '0 auto',
+          }}>
             {Object.entries(categoryMeta).map(([key, meta]) => (
               <div key={key} style={{
                 padding: '20px', borderRadius: 'var(--radius-xl)', background: meta.bg,

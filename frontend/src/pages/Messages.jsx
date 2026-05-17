@@ -8,6 +8,13 @@ import { Spinner, EmptyState } from '../components/Loading';
 import { useToast } from '../components/Toast';
 import { formatTimeAgo } from '../utils/helpers';
 
+const getSenderId = (message) => {
+  const sender = message?.sender;
+  if (!sender) return '';
+  if (typeof sender === 'string') return sender;
+  return sender._id || sender.id || '';
+};
+
 const RequestItem = ({ req, onAccept, onReject }) => {
   const [loading, setLoading] = useState('');
   const handleAccept = async () => {
@@ -60,25 +67,29 @@ const RequestItem = ({ req, onAccept, onReject }) => {
 const ChatBubble = ({ message, isMe }) => (
   <div style={{
     display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start',
-    marginBottom: '6px', animation: 'fadeIn 0.2s ease',
+    marginBottom: '10px', animation: 'fadeIn 0.2s ease',
   }}>
     <div style={{
-      maxWidth: '72%', padding: '10px 14px',
+      maxWidth: '72%', minWidth: '120px', padding: '10px 14px',
       borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
       background: isMe ? 'var(--primary)' : 'var(--white)',
       color: isMe ? 'var(--white)' : 'var(--text)',
-      fontSize: 'var(--text-sm)', lineHeight: 1.5,
       boxShadow: 'var(--shadow-sm)',
       border: isMe ? 'none' : `1px solid ${'var(--border)'}`,
     }}>
-      <p style={{ wordBreak: 'break-word' }}>{message.content}</p>
-      <p style={{
-        fontSize: '10px', opacity: 0.6, marginTop: '4px',
-        textAlign: isMe ? 'right' : 'left',
-      }}>
-        {formatTimeAgo(message.createdAt)}
-        {message._id?.startsWith('temp-') ? ' · Sending...' : ''}
+      <p style={{ wordBreak: 'break-word', fontSize: 'var(--text-sm)', lineHeight: 1.5 }}>
+        {message.content}
       </p>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', gap: '8px',
+        marginTop: '6px', fontSize: '10px', opacity: 0.75,
+      }}>
+        <span>{isMe ? 'You' : (message.sender?.name || 'User')}</span>
+        <span>
+          {formatTimeAgo(message.createdAt)}
+          {message._id?.startsWith('temp-') ? ' · Sending...' : ''}
+        </span>
+      </div>
     </div>
   </div>
 );
@@ -98,6 +109,7 @@ const Messages = () => {
   const [sending, setSending] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
   const bottomRef = useRef();
+  const currentUserId = String(user?._id || user?.id || '');
 
   useEffect(() => {
     fetchChats();
@@ -144,9 +156,13 @@ const Messages = () => {
     setMessages(prev => [...prev, tempMsg]);
     try {
       const data = await messagesAPI.sendMessage(activeChat._id, content);
-      setMessages(prev => prev.map(m => m._id === tempId ? (data.message || data.msg || tempMsg) : m));
+      setMessages(prev => prev.map(m => m._id === tempId ? (data.msg || tempMsg) : m));
       setChats(prev => prev.map(c =>
-        c._id === activeChat._id ? { ...c, lastMessage: content, lastMessageTime: new Date().toISOString() } : c
+        c._id === activeChat._id ? {
+          ...c,
+          lastMessage: data.msg || tempMsg,
+          lastMessageTime: new Date().toISOString(),
+        } : c
       ));
     } catch (err) {
       setMessages(prev => prev.filter(m => m._id !== tempId));
@@ -174,7 +190,20 @@ const Messages = () => {
   };
 
   const getOtherUser = (chat) =>
-    chat.user1?._id === user?._id ? chat.user2 : chat.user1;
+    String(chat.user1?._id || chat.user1 || '') === currentUserId ? chat.user2 : chat.user1;
+
+  const formatPreview = (chat) => {
+    const lastMessage = chat.lastMessage;
+    if (!lastMessage) return 'Start chatting...';
+
+    const lastMessageSenderId = getSenderId(lastMessage);
+    const isFromMe = lastMessageSenderId && String(lastMessageSenderId) === currentUserId;
+    const prefix = isFromMe ? 'You: ' : `${lastMessage.sender?.name || getOtherUser(chat)?.name || 'User'}: `;
+    const content = typeof lastMessage === 'string'
+      ? lastMessage
+      : (lastMessage.content || 'Start chatting...');
+    return `${prefix}${content}`;
+  };
 
   return (
     <Layout noFooter>
@@ -260,7 +289,7 @@ const Messages = () => {
                         fontSize: 'var(--text-xs)', color: 'var(--text-muted)',
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
-                        {typeof chat.lastMessage === 'string' ? chat.lastMessage : 'Start chatting...'}
+                        {formatPreview(chat)}
                       </div>
                     </div>
                     {chat.lastMessageTime && (
@@ -307,7 +336,7 @@ const Messages = () => {
                     <ChatBubble
                       key={msg._id}
                       message={msg}
-                      isMe={msg.sender?._id === user?._id || msg.sender === user?._id}
+                      isMe={String(getSenderId(msg)) === currentUserId}
                     />
                   ))
                 )}

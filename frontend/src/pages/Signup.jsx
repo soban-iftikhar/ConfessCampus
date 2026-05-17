@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { UserRound, Mail, AtSign, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../api/services';
 import { validateSignup } from '../utils/validation';
@@ -48,7 +49,7 @@ const Signup = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const [form, setForm] = useState({ name: '', email: '', username: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', username: '', password: '', confirmPassword: '' });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -74,6 +75,7 @@ const Signup = () => {
         email: form.email.trim().toLowerCase(),
         username: form.username.trim(),
         password: form.password,
+        confirmPassword: form.confirmPassword,
       });
       login(data.user, data.accessToken, data.refreshToken);
       toast.success('Account created! Welcome to WhisperCampus');
@@ -176,16 +178,16 @@ const Signup = () => {
           )}
 
           <Input label="Full Name" name="name" value={form.name}
-            onChange={handleChange} placeholder="John Doe" icon="U"
+            onChange={handleChange} placeholder="John Doe" icon={<UserRound size={16} />}
             error={errors.name} required autoComplete="name" />
 
           <Input label="Email" name="email" type="email" value={form.email}
-            onChange={handleChange} placeholder="john@university.edu" icon="@"
+            onChange={handleChange} placeholder="john@university.edu" icon={<Mail size={16} />}
             error={errors.email} required autoComplete="email" />
 
           <div>
             <Input label="Username" name="username" value={form.username}
-              onChange={handleChange} placeholder="johndoe" icon="@"
+              onChange={handleChange} placeholder="johndoe" icon={<AtSign size={16} />}
               error={errors.username} required autoComplete="username"
               hint="3-20 chars • lowercase letters, numbers, underscores only"
               maxLength={20} />
@@ -195,7 +197,7 @@ const Signup = () => {
             <div style={{ position: 'relative' }}>
               <Input label="Password" name="password" type={showPassword ? 'text' : 'password'}
                 value={form.password} onChange={handleChange}
-                placeholder="Min. 6 characters" icon="P"
+                placeholder="Min. 6 characters" icon={<KeyRound size={16} />}
                 error={errors.password} required autoComplete="new-password" />
               <button
                 type="button"
@@ -206,10 +208,38 @@ const Signup = () => {
                   fontSize: '16px', color: 'var(--text-muted)',
                 }}
               >
-                {showPassword ? 'Hide' : 'Show'}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             <PasswordStrength password={form.password} />
+          </div>
+
+          <div>
+            <div style={{ position: 'relative' }}>
+              <Input
+                label="Confirm Password"
+                name="confirmPassword"
+                type={showPassword ? 'text' : 'password'}
+                value={form.confirmPassword}
+                onChange={handleChange}
+                placeholder="Re-enter your password"
+                icon={<KeyRound size={16} />}
+                error={errors.confirmPassword}
+                required
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute', right: '14px', top: '37px',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: '16px', color: 'var(--text-muted)',
+                }}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <Button type="submit" fullWidth loading={loading} size="lg">

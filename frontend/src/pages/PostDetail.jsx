@@ -11,7 +11,8 @@ const categoryMeta = {
 
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Heart, Share2, Flag, ArrowLeft, Trash2 } from 'lucide-react';
 import { postsAPI } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
@@ -163,7 +164,7 @@ const PostDetail = () => {
           onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
           onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
         >
-          ← Back to feed
+          <ArrowLeft size={16} /> Back to feed
         </button>
 
         {/* Post card */}
@@ -177,9 +178,24 @@ const PostDetail = () => {
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <AvatarOrAnon user={post.user} isAnonymous={post.isAnonymous} size={44} />
               <div>
-                <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--text)', fontFamily: 'var(--font-body)' }}>
-                  {post.isAnonymous ? 'Anonymous' : post.user?.name}
-                </div>
+                {post.isAnonymous ? (
+                  <div style={{ fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--text)', fontFamily: 'var(--font-body)' }}>
+                    Anonymous
+                  </div>
+                ) : (
+                  <Link
+                    to={`/profile/${post.user?._id}`}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      fontWeight: 700, fontSize: 'var(--text-base)', color: 'var(--text)',
+                      fontFamily: 'var(--font-body)', textDecoration: 'none', cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--primary)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text)'; }}
+                  >
+                    {post.user?.name}
+                  </Link>
+                )}
                 <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                   {!post.isAnonymous && post.user?.username && `@${post.user.username} · `}
                   {formatTimeAgo(post.createdAt)}
@@ -254,6 +270,7 @@ const PostDetail = () => {
                 color: liked ? 'var(--rose)' : 'var(--text-secondary)',
               }}
             >
+              <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
               {liked ? 'Liked' : 'Like'} • {likesCount} {likesCount === 1 ? 'Like' : 'Likes'}
             </button>
 
@@ -276,6 +293,7 @@ const PostDetail = () => {
               <button
                 onClick={() => setShowReport(true)}
                 style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
                   padding: '8px 14px', borderRadius: 'var(--radius-full)', border: 'none',
                   cursor: 'pointer', background: 'transparent',
                   color: 'var(--text-muted)', fontSize: 'var(--text-sm)',
@@ -284,6 +302,7 @@ const PostDetail = () => {
                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--rose-light)'; e.currentTarget.style.color = 'var(--rose)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
               >
+                <Flag size={16} />
                 Report
               </button>
             )}
@@ -293,12 +312,14 @@ const PostDetail = () => {
                 onClick={handleDelete}
                 disabled={deleting}
                 style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
                   padding: '8px 14px', borderRadius: 'var(--radius-full)', border: 'none',
                   cursor: 'pointer', background: 'var(--rose-light)',
                   color: 'var(--rose)', fontSize: 'var(--text-sm)',
                   fontFamily: 'var(--font-body)', fontWeight: 600,
                 }}
               >
+                <Trash2 size={16} />
                 {deleting ? 'Deleting...' : 'Delete'}
               </button>
             )}

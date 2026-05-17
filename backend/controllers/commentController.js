@@ -50,12 +50,15 @@ export const createComment = async (req, res, next) => {
             });
         }
 
-        // Create comment - use post's anonymity setting
+        // Determine anonymity: if the post is anonymous, force comments anonymous.
+        // Otherwise, respect the user's choice if provided (default false).
+        const isAnonymousFlag = post.isAnonymous ? true : (req.body.isAnonymous ?? false);
+
         const comment = new Comment({
             post: postId,
             user: userId,
             content,
-            isAnonymous: post.isAnonymous // If post is anonymous, comments are too
+            isAnonymous: isAnonymousFlag
         });
 
         const savedComment = await comment.save();

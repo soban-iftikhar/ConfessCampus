@@ -27,7 +27,7 @@ const ReportModal = ({ itemId, itemType, onClose }) => {
       await apiRequest('/reports/create', {
         method: 'POST',
         body: JSON.stringify({
-          reportedItem: itemId,
+          itemId,
           itemType,
           reason,
           description: description.trim(),

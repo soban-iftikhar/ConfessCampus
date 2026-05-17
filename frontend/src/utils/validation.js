@@ -29,6 +29,12 @@ export const validateSignup = (values) => {
     errors.password = 'Password must be at least 6 characters';
   }
 
+  if (!values.confirmPassword) {
+    errors.confirmPassword = 'Please confirm your password';
+  } else if (values.password && values.confirmPassword !== values.password) {
+    errors.confirmPassword = 'Passwords do not match';
+  }
+
   return errors;
 };
 

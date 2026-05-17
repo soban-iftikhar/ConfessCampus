@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { UserRound, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../api/services';
 import { validateLogin } from '../utils/validation';
@@ -142,7 +143,7 @@ const Login = () => {
             value={form.username}
             onChange={handleChange}
             placeholder="johndoe"
-            icon="U"
+            icon={<UserRound size={16} />}
             error={errors.username}
             required
             autoComplete="username"
@@ -156,7 +157,7 @@ const Login = () => {
               value={form.password}
               onChange={handleChange}
               placeholder="••••••••"
-              icon="�"
+              icon={<KeyRound size={16} />}
               error={errors.password}
               required
               autoComplete="current-password"
@@ -170,7 +171,7 @@ const Login = () => {
                 fontSize: '16px', color: 'var(--text-muted)',
               }}
             >
-              {showPassword ? 'Hide' : 'Show'}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
 

@@ -11,7 +11,8 @@ const categoryMeta = {
 
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { Heart, MessageCircle, Share2, Flag } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api/config';
 import { formatTimeAgo, truncateText } from '../utils/helpers';
@@ -130,9 +131,24 @@ const PostCard = ({ post, onUpdate }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
           <AvatarOrAnon user={post.user} isAnonymous={post.isAnonymous} size={36} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-body)' }}>
-              {post.isAnonymous ? 'Anonymous' : (post.user?.name || 'Unknown')}
-            </div>
+            {post.isAnonymous ? (
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-body)' }}>
+                Anonymous
+              </div>
+            ) : (
+              <Link
+                to={`/profile/${post.user?._id}`}
+                onClick={e => e.stopPropagation()}
+                style={{
+                  fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text)',
+                  fontFamily: 'var(--font-body)', textDecoration: 'none', cursor: 'pointer',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'var(--primary)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'var(--text)'; }}
+              >
+                {post.user?.name || 'Unknown'}
+              </Link>
+            )}
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
               {post.isAnonymous ? '' : (post.user?.username ? `@${post.user.username} · ` : '')}
               {formatTimeAgo(post.createdAt)}
@@ -205,7 +221,7 @@ const PostCard = ({ post, onUpdate }) => {
           onMouseEnter={e => { if (!liked) e.currentTarget.style.background = 'var(--bg-muted)'; }}
           onMouseLeave={e => { if (!liked) e.currentTarget.style.background = 'transparent'; }}
         >
-          <span>{liked ? 'L' : 'L'}</span>
+          <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
           <span>{likesCount}</span>
         </button>
 
@@ -222,7 +238,8 @@ const PostCard = ({ post, onUpdate }) => {
           onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-muted)'}
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
-          Comments
+          <MessageCircle size={16} />
+          <span>Comments</span>
           <span>{post.commentsCount ?? post.comments?.length ?? 0}</span>
         </button>
 
@@ -242,7 +259,7 @@ const PostCard = ({ post, onUpdate }) => {
           onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-muted)'}
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
-          <span></span>
+          <Share2 size={16} />
         </button>
 
         <div style={{ flex: 1 }} />
@@ -260,7 +277,7 @@ const PostCard = ({ post, onUpdate }) => {
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent'; }}
             title="Report post"
           >
-            ⚑
+            <Flag size={16} />
           </button>
         )}
       </div>

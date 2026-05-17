@@ -87,7 +87,11 @@ const createPost = async (req, res) => {
 
         const savedPost = await newPost.save();
         await savedPost.populate('user', 'name bio');
-        res.status(201).json(savedPost);
+        res.status(201).json({
+            success: true,
+            message: 'Post created successfully',
+            post: formatPostData(savedPost)
+        });
     } catch (error) {
         res.status(500).json({ message: 'Server error', details: error.message });
     }
@@ -132,7 +136,11 @@ const getPosts = async (req, res) => {
         // Format posts to hide user info if anonymous
         const formattedPosts = posts.map(post => formatPostData(post));
         
-        res.status(200).json(formattedPosts);
+        res.status(200).json({
+            success: true,
+            count: formattedPosts.length,
+            posts: formattedPosts
+        });
     } catch (error) {
         res.status(500).json({ message: 'Server error', details: error.message });
     }
@@ -146,13 +154,16 @@ const getPostById = async (req, res) => {
             .populate('user', 'name bio')
             .populate('comments');
         if (!postData) {
-            return res.status(404).json({ message: 'Post not found' });
+            return res.status(404).json({ success: false, message: 'Post not found' });
         }
         
         // Format post to hide user info if anonymous
         const formattedPost = formatPostData(postData);
         
-        res.status(200).json(formattedPost);
+        res.status(200).json({
+            success: true,
+            post: formattedPost
+        });
     } catch (error) {
         res.status(500).json({ message: 'Server error', details: error.message });
     }
@@ -166,20 +177,20 @@ const updatePost = async (req, res) => {
         const userId = req.user?.id; // From auth middleware
 
         if (!userId) {
-            return res.status(401).json({ message: 'Unauthorized - User not found' });
+            return res.status(401).json({ success: false, message: 'Unauthorized - User not found' });
         }
 
         if (content && content.length > 1000) {
-            return res.status(400).json({ message: 'Content must not exceed 1000 characters' });
+            return res.status(400).json({ success: false, message: 'Content must not exceed 1000 characters' });
         }
 
         const postData = await Post.findById(postId);
         if (!postData) {
-            return res.status(404).json({ message: 'Post not found' });
+            return res.status(404).json({ success: false, message: 'Post not found' });
         }
 
         if (postData.user.toString() !== userId) {
-            return res.status(403).json({ message: 'Unauthorized - Can only edit your own posts' });
+            return res.status(403).json({ success: false, message: 'Unauthorized - Can only edit your own posts' });
         }
 
         // Update allowed fields based on category
@@ -188,16 +199,21 @@ const updatePost = async (req, res) => {
         if (isResolved !== undefined && postData.category === 'discussion') postData.isResolved = isResolved;
         if (seatsAvailable !== undefined && postData.category === 'carpool') {
             if (seatsAvailable < 1) {
-                return res.status(400).json({ message: 'Seats available must be at least 1' });
+                return res.status(400).json({ success: false, message: 'Seats available must be at least 1' });
             }
             postData.seatsAvailable = seatsAvailable;
         }
 
         const updatedPost = await postData.save();
         await updatedPost.populate('user', 'name bio');
-        res.status(200).json(updatedPost);
+
+        res.status(200).json({
+            success: true,
+            message: 'Post updated successfully',
+            post: formatPostData(updatedPost)
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', details: error.message });
+        res.status(500).json({ success: false, message: 'Server error', details: error.message });
     }
 };
 
@@ -235,51 +251,58 @@ const likePost = async (req, res) => {
         const userId = req.user?.id; // From auth middleware
 
         if (!userId) {
-            return res.status(401).json({ message: 'Unauthorized - User not found' });
+            return res.status(401).json({ success: false, message: 'Unauthorized - User not found' });
         }
 
         const postData = await Post.findById(postId);
         if (!postData) {
-            return res.status(404).json({ message: 'Post not found' });
+            return res.status(404).json({ success: false, message: 'Post not found' });
         }
 
         if (postData.likes.includes(userId)) {
-            return res.status(400).json({ message: 'You have already liked this post' });
+            return res.status(400).json({ success: false, message: 'You have already liked this post' });
         }
 
         postData.likes.push(userId);
         await postData.save();
-        res.status(200).json({ message: 'Post liked successfully', likesCount: postData.likes.length });
+        res.status(200).json({
+            success: true,
+            message: 'Post liked successfully',
+            likesCount: postData.likes.length
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', details: error.message });
+        res.status(500).json({ success: false, message: 'Server error', details: error.message });
     }
 };
 
-
-//  Unlike a post
+// Unlike a post
 const unlikePost = async (req, res) => {
     try {
         const postId = req.params.id;
         const userId = req.user?.id; // From auth middleware
 
         if (!userId) {
-            return res.status(401).json({ message: 'Unauthorized - User not found' });
+            return res.status(401).json({ success: false, message: 'Unauthorized - User not found' });
         }
 
         const postData = await Post.findById(postId);
         if (!postData) {
-            return res.status(404).json({ message: 'Post not found' });
+            return res.status(404).json({ success: false, message: 'Post not found' });
         }
 
         if (!postData.likes.includes(userId)) {
-            return res.status(400).json({ message: 'You have not liked this post' });
+            return res.status(400).json({ success: false, message: 'You have not liked this post' });
         }
 
         postData.likes = postData.likes.filter(id => id.toString() !== userId);
         await postData.save();
-        res.status(200).json({ message: 'Post unliked successfully', likesCount: postData.likes.length });
+        res.status(200).json({
+            success: true,
+            message: 'Post unliked successfully',
+            likesCount: postData.likes.length
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', details: error.message });
+        res.status(500).json({ success: false, message: 'Server error', details: error.message });
     }
 };
 
@@ -289,10 +312,9 @@ const getUserPublicPosts = async (req, res) => {
         const userId = req.params.userId;
 
         if (!userId) {
-            return res.status(400).json({ message: 'User ID is required' });
+            return res.status(400).json({ success: false, message: 'User ID is required' });
         }
 
-        // Get only non-anonymous posts from this user
         const posts = await Post.find({
             user: userId,
             isAnonymous: false
@@ -301,9 +323,13 @@ const getUserPublicPosts = async (req, res) => {
             .populate('comments')
             .sort({ createdAt: -1 });
 
-        res.status(200).json(posts);
+        res.status(200).json({
+            success: true,
+            count: posts.length,
+            posts: posts.map(post => formatPostData(post))
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', details: error.message });
+        res.status(500).json({ success: false, message: 'Server error', details: error.message });
     }
 };
 
